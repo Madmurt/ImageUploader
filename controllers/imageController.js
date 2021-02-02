@@ -3,14 +3,16 @@ const { validationResult } = require('express-validator');
 
 const multer = require('multer');
 
-// const storage = multer.diskStorage({
-// 	destination: function (req, file, cb) {
-// 		cb(null, './uploads');
-// 	},
-// 	filename: function (req, file, cb) {
-// 		cb(null, file.originalname);
-// 	},
-// });
+const storage = multer.diskStorage({
+	destination: function (req, file, cb) {
+		cb(null, './uploads');
+	},
+	filename: function (req, file, cb) {
+		cb(null, file.originalname);
+	},
+});
+
+const uploadImg = multer({ storage: storage }).single('image');
 
 const newImage = async (req, res, next) => {
 	const errors = validationResult(req);
@@ -22,7 +24,7 @@ const newImage = async (req, res, next) => {
 
 		const newImage = {
 			name: req.body.name,
-			image: req.body.image,
+			image: req.file.path,
 		};
 		if (image === null) {
 			image = new Image(newImage);
@@ -37,4 +39,4 @@ const newImage = async (req, res, next) => {
 	}
 };
 
-module.exports = { newImage };
+module.exports = { newImage, uploadImg };
