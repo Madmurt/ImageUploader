@@ -1,4 +1,6 @@
 const Image = require('../models/image');
+const aws = require('aws-sdk');
+const fs = require('fs');
 const { validationResult } = require('express-validator');
 
 const multer = require('multer');
@@ -14,29 +16,96 @@ const storage = multer.diskStorage({
 
 const uploadImg = multer({ storage: storage }).single('image');
 
-const newImage = async (req, res, next) => {
-	const errors = validationResult(req);
-	if (!errors.isEmpty()) {
-		return res.status(400).json({ errors: errors.array() });
-	}
-	try {
-		let image = await Image.findOne({ name: req.body.name });
+// const newImage = async (req, res, next) => {
+// 	const errors = validationResult(req);
+// 	if (!errors.isEmpty()) {
+// 		return res.status(400).json({ errors: errors.array() });
+// 	}
+// 	try {
+// 		let image = await Image.findOne({ name: req.body.name });
 
-		const newImage = {
-			name: req.body.name,
-			image: req.file.path,
-		};
-		if (image === null) {
-			image = new Image(newImage);
-			await image.save();
-			res.json(`New image saved: ${newImage.name}`);
-		} else {
-			res.json('Image already exists');
+// 		const newImage = {
+// 			name: req.body.name,
+// 			image: req.file.path,
+// 		};
+// 		if (image === null) {
+// 			image = new Image(newImage);
+// 			await image.save();
+// 			res.json(`New image saved: ${newImage.name}`);
+// 		} else {
+// 			res.json('Image already exists');
+// 		}
+// 	} catch (error) {
+// 		console.error(error.message);
+// 		res.status(500).send(error.message);
+// 	}
+// };
+
+const newImage = (req, res) => {
+	aws.config.setPromisesDependency();
+	aws.config.update({
+		accessKeyId: process.env.ACCESSKEYID,
+		secretAccessKey: process.env.SECRETACCESSKEY,
+		region: process.env.REGION,
+	});
+
+	const s3 = new aws.S3();
+	var params = {
+		ACL: 'public-read',
+		Bucket: 'mmcc-imagestorage-bucket',
+		Body: fs.createReadStream(req.file.path),
+		Key: `image/${req.file.originalname}`,
+	};
+
+	s3.upload(params, (err, data) => {
+		if (err) {
+			console.log(
+				'Error occured while trying to upload to S3 bucket',
+				err
+			);
 		}
-	} catch (error) {
-		console.error(error.message);
-		res.status(500).send(error.message);
-	}
+		if (data) {
+			fs.unlinkSync(req.file.path); // Empty temp folder
+			const locationUrl = data.Location;
+			let newImage = new Image({ ...req.body, image: locationUrl });
+			newImage
+				.save()
+				.then((image) => {
+					res.json({ message: 'Image created successfully', image });
+				})
+				.catch((err) => {
+					console.log('Error occured while trying to save to DB');
+				});
+		}
+	});
 };
 
-module.exports = { newImage, uploadImg };
+const getImage = (res, req) => {
+	aws.config.setPromisesDependency();
+	aws.config.update({
+		accessKeyId: process.env.ACCESSKEYID,
+		secretAccessKey: process.env.SECRETACCESSKEY,
+		region: process.env.REGION,
+	});
+
+	var params = {
+		Bucket: 'mmcc-imagestorage-bucket',
+		Key: `image/download.png`,
+	};
+
+	const s3 = new aws.S3();
+	s3.getObject(params, (error, data) => {
+		if (error != null) {
+			console.log(
+				'Error occured while trying get image from DB',
+				error.message
+			);
+		} else {
+			let objectData = data.Body.toString('utf-8');
+			// do something with data.Body
+			res.json({ message: 'Image retrieved successfully', objectData });
+		}
+	});
+};
+
+module.exports = { newImage, uploadImg, getImage };

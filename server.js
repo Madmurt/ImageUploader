@@ -4,6 +4,8 @@ const app = express();
 
 connectDB();
 
+app.use(express.json({ extended: false }));
+
 app.get('/', (req, res) => res.send('API running'));
 
 app.use('/image', require('./routes/image'));
