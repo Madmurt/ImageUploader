@@ -1,10 +1,11 @@
 const express = require('express');
 const connectDB = require('./config/db');
+var bodyParser = require('body-parser');
 const app = express();
 
 connectDB();
 
-app.use(express.json({ extended: false }));
+app.use(express.json());
 
 app.get('/', (req, res) => res.send('API running'));
 

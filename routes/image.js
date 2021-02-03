@@ -8,6 +8,6 @@ const router = express.Router();
 
 router.post('/', uploadImg, newImage);
 
-router.get('/', getImage);
+router.get('/:filename', getImage);
 
 module.exports = router;

@@ -71,7 +71,7 @@ const newImage = (req, res) => {
 			newImage
 				.save()
 				.then((image) => {
-					res.json({ message: 'Image created successfully', image });
+					res.json({ message: 'Image uploaded successfully', image });
 				})
 				.catch((err) => {
 					console.log('Error occured while trying to save to DB');
@@ -80,30 +80,30 @@ const newImage = (req, res) => {
 	});
 };
 
-const getImage = (res, req) => {
+const getImage = async (res, req) => {
 	aws.config.setPromisesDependency();
 	aws.config.update({
 		accessKeyId: process.env.ACCESSKEYID,
 		secretAccessKey: process.env.SECRETACCESSKEY,
 		region: process.env.REGION,
 	});
-
-	var params = {
+	console.log(req);
+	var params = await {
 		Bucket: 'mmcc-imagestorage-bucket',
-		Key: `image/download.png`,
+		Key: `image/${req.params.filename}`,
 	};
 
 	const s3 = new aws.S3();
-	s3.getObject(params, (error, data) => {
+	await s3.getObject(params, (error, data) => {
 		if (error != null) {
 			console.log(
 				'Error occured while trying get image from DB',
 				error.message
 			);
 		} else {
-			let objectData = data.Body.toString('utf-8');
-			// do something with data.Body
-			res.json({ message: 'Image retrieved successfully', objectData });
+			fs.writeFile('./uploads/Test.png', data.Body, function (err, data) {
+				console.log('Image Downloaded succesfully');
+			});
 		}
 	});
 };
