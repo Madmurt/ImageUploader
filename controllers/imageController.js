@@ -80,7 +80,7 @@ const newImage = (req, res) => {
 	});
 };
 
-const getImage = async (res, req) => {
+const getImage = (res, req) => {
 	aws.config.setPromisesDependency();
 	aws.config.update({
 		accessKeyId: process.env.ACCESSKEYID,
@@ -88,13 +88,13 @@ const getImage = async (res, req) => {
 		region: process.env.REGION,
 	});
 	console.log(req);
-	var params = await {
+	var params = {
 		Bucket: 'mmcc-imagestorage-bucket',
 		Key: `image/${req.params.filename}`,
 	};
 
 	const s3 = new aws.S3();
-	await s3.getObject(params, (error, data) => {
+	s3.getObject(params, (error, data) => {
 		if (error != null) {
 			console.log(
 				'Error occured while trying get image from DB',
